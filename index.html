@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EVA - Matemáticas 5°</title>
+    
+    <!-- Tailwind CSS para Estilos -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome para Iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel para compilar JSX en el navegador -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* Animaciones personalizadas */
+        .animate-fade-in { animation: fadeIn 0.4s ease-in-out; }
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        .animate-bounce-short { animation: bounceShort 1.5s infinite; }
+        @keyframes bounceShort { 
+            0%, 100% { transform: translateY(0); } 
+            50% { transform: translateY(-10%); } 
+        }
+        .toast-enter { animation: slideInDown 0.3s forwards; }
+        @keyframes slideInDown {
+            from { opacity: 0; transform: translate(-50%, -20px); }
+            to { opacity: 1; transform: translate(-50%, 0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans">
+    
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- COMPONENTE PRINCIPAL ---
+        function App() {
+            const [currentView, setCurrentView] = useState('inicio');
+            const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+            const [earnedBadges, setEarnedBadges] = useState([]);
+            const [xp, setXp] = useState(0); 
+            const [toastMsg, setToastMsg] = useState(null);
+            
+            // Sistema de Calificaciones (Notas)
+            const [grades, setGrades] = useState({
+                mod1_sim: null,
+                mod2_sim: null,
+                mod3_sim: null,
+                mod4_upload: null
+            });
+
+            // Sistema de notificaciones
+            const showToast = (message) => {
+                setToastMsg(message);
+                setTimeout(() => setToastMsg(null), 3500);
+            };
+
+            const addXp = (amount) => {
+                setXp(prev => prev + amount);
+                showToast(`¡Ganaste ${amount} XP! ⭐`);
+            };
+
+            const recordGrade = (gameId, score) => {
+                setGrades(prev => ({ ...prev, [gameId]: score }));
+                showToast(`¡Nota guardada: ${score}/5.0! 📝`);
+            };
+
+            const navigateTo = (view) => {
+                setCurrentView(view);
+                setIsMobileMenuOpen(false);
+            };
+
+            const navItems = [
+                { id: 'inicio', label: 'Inicio', icon: 'fa-house' },
+                { id: 'oficina', label: 'Oficina del Profesor', icon: 'fa-circle-info' },
+                { id: 'modulo1', label: 'Módulo 1: Multiplicando Ando', icon: 'fa-book-open' },
+                { id: 'modulo2', label: 'Módulo 2: El Jardín', icon: 'fa-seedling' },
+                { id: 'modulo3', label: 'Módulo 3: El Mercado', icon: 'fa-shop' },
+                { id: 'modulo4', label: 'Módulo 4: Proyecto Final', icon: 'fa-upload' },
+                { id: 'foro', label: 'Foro de Rescate', icon: 'fa-comments' },
+                { id: 'logros', label: 'Mis Logros', icon: 'fa-medal' },
+            ];
+
+            return (
+                <div className="min-h-screen flex flex-col md:flex-row relative">
+                    
+                    {toastMsg && (
+                        <div className="fixed top-4 left-1/2 z-50 toast-enter bg-green-600 text-white px-6 py-3 rounded-full shadow-xl font-bold flex items-center gap-3" style={{ transform: 'translateX(-50%)' }}>
+                            <i className="fa-solid fa-bell"></i>
+                            {toastMsg}
+                        </div>
+                    )}
+
+                    <div className="md:hidden bg-green-600 text-white p-4 flex justify-between items-center shadow-md z-20">
+                        <div className="font-bold text-lg flex items-center gap-2">
+                            <i className="fa-solid fa-book-open"></i>
+                            EVA - Matemáticas 5°
+                        </div>
+                        <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2">
+                            <i className={`fa-solid ${isMobileMenuOpen ? 'fa-xmark' : 'fa-bars'} text-2xl`}></i>
+                        </button>
+                    </div>
+
+                    <nav className={`
+                        ${isMobileMenuOpen ? 'flex' : 'hidden'} 
+                        md:flex flex-col w-full md:w-72 bg-white border-r border-slate-200 shadow-sm
+                        fixed md:sticky top-[60px] md:top-0 h-[calc(100vh-60px)] md:h-screen z-10
+                    `}>
+                        <div className="hidden md:flex bg-green-600 text-white p-6 justify-center items-center">
+                            <div className="text-center">
+                                <div className="bg-white text-green-600 rounded-full w-16 h-16 flex items-center justify-center inline-block mb-3 shadow-lg mx-auto">
+                                    <i className="fa-solid fa-laptop-code text-3xl"></i>
+                                </div>
+                                <h1 className="font-bold text-xl">Matemáticas 5°</h1>
+                                <p className="text-green-100 text-sm">I.E. José Manuel Palacios</p>
+                            </div>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto py-4">
+                            <ul className="space-y-2 px-4">
+                                {navItems.map((item) => {
+                                    const isActive = currentView === item.id;
+                                    return (
+                                        <li key={item.id}>
+                                            <button
+                                                onClick={() => navigateTo(item.id)}
+                                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium text-left
+                                                    ${isActive 
+                                                        ? 'bg-green-100 text-green-700 shadow-sm' 
+                                                        : 'text-slate-600 hover:bg-slate-100 hover:text-green-600'}`}
+                                            >
+                                                <i className={`fa-solid ${item.icon} w-5 text-center ${isActive ? 'text-green-600' : 'text-slate-400'}`}></i>
+                                                {item.label}
+                                            </button>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </div>
+
+                        <div className="p-4 border-t border-slate-100">
+                            <div className="flex items-center gap-3 px-4 py-2 bg-slate-100 rounded-xl">
+                                <div className="bg-blue-500 rounded-full w-10 h-10 flex items-center justify-center text-white">
+                                    <i className="fa-solid fa-user"></i>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-slate-800">Estudiante Explorador</p>
+                                    <p className="text-xs text-slate-500">Grado 5° | Nivel {Math.floor(xp/100) + 1}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50">
+                        <div className="max-w-4xl mx-auto">
+                            {currentView === 'inicio' && <Dashboard navigateTo={navigateTo} earnedBadges={earnedBadges} xp={xp} />}
+                            {currentView === 'oficina' && <OficinaProfesor />}
+                            {currentView === 'modulo1' && <ModuloUno earnedBadges={earnedBadges} setEarnedBadges={setEarnedBadges} showToast={showToast} addXp={addXp} grades={grades} recordGrade={recordGrade} />}
+                            {currentView === 'modulo2' && <ModuloDos earnedBadges={earnedBadges} setEarnedBadges={setEarnedBadges} showToast={showToast} addXp={addXp} grades={grades} recordGrade={recordGrade} />}
+                            {currentView === 'modulo3' && <ModuloTres earnedBadges={earnedBadges} setEarnedBadges={setEarnedBadges} showToast={showToast} addXp={addXp} grades={grades} recordGrade={recordGrade} />}
+                            {currentView === 'modulo4' && <ModuloCuatro earnedBadges={earnedBadges} setEarnedBadges={setEarnedBadges} showToast={showToast} addXp={addXp} grades={grades} recordGrade={recordGrade} />}
+                            {currentView === 'foro' && <ForoDudas />}
+                            {currentView === 'logros' && <Logros earnedBadges={earnedBadges} xp={xp} grades={grades} />}
+                        </div>
+                    </main>
+                </div>
+            );
+        }
+
+        // --- COMPONENTE CAJA DE NOTAS ---
+        function PanelCalificaciones({ items }) {
+            return (
+                <div className="flex flex-wrap gap-4 mt-4 animate-fade-in">
+                    {items.map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-3 bg-white px-4 py-3 rounded-xl shadow-sm border border-slate-200">
+                            <div className={`p-2 rounded-lg ${item.score ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-400'}`}>
+                                <i className={`fa-solid ${item.score ? 'fa-graduation-cap' : 'fa-lock'}`}></i>
+                            </div>
+                            <div>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Nota: {item.name}</p>
+                                <p className={`text-xl font-black ${item.score ? 'text-green-600' : 'text-slate-300'}`}>
+                                    {item.score ? `${item.score} / 5.0` : '---'}
+                                </p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+
+        // --- COMPONENTE COMENTARIOS (MOMENTO 1) ---
+        function CommentBox({ onComplete, isCompleted }) {
+            const [comment, setComment] = useState("");
+
+            const handleSubmit = () => {
+                if(comment.trim().length > 10) {
+                    onComplete();
+                } else {
+                    alert("Por favor escribe un comentario un poco más largo explicándonos qué entendiste.");
+                }
+            };
+
+            if (isCompleted) {
+                return (
+                    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl text-green-800 flex items-center gap-3">
+                        <i className="fa-solid fa-circle-check text-2xl text-green-500"></i>
+                        <div>
+                            <p className="font-bold">¡Comentario enviado!</p>
+                            <p className="text-sm">Gracias por compartir lo que entendiste. Tu opinión es muy importante.</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="mt-6 bg-slate-100 p-5 rounded-xl border border-slate-200">
+                    <label className="block text-slate-700 font-bold mb-2">Comenta lo que entendiste del video:</label>
+                    <textarea 
+                        className="w-full p-3 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 mb-3"
+                        rows="3" 
+                        placeholder="Escribe aquí tu resumen o lo que más te gustó..."
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                    ></textarea>
+                    <button 
+                        onClick={handleSubmit}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-lg shadow-sm transition-colors"
+                    >
+                        <i className="fa-solid fa-paper-plane mr-2"></i> Enviar comentario
+                    </button>
+                </div>
+            );
+        }
+
+        // --- VISTAS INDIVIDUALES ---
+
+        function Dashboard({ navigateTo, earnedBadges, xp }) {
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    <header className="bg-gradient-to-r from-green-500 to-emerald-400 rounded-3xl p-8 text-white shadow-lg relative overflow-hidden">
+                        <div className="relative z-10">
+                            <h2 className="text-3xl md:text-4xl font-extrabold mb-2">¡Hola, Explorador! 👋</h2>
+                            <p className="text-green-50 text-lg max-w-xl mb-4">
+                                Bienvenido a tu entorno virtual. Aquí convertiremos los misterios de las matemáticas en aventuras.
+                            </p>
+                            <div className="inline-block bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl border border-white/30">
+                                <span className="font-bold">⭐ Experiencia total:</span> {xp} XP
+                            </div>
+                        </div>
+                        <div className="absolute right-[-20px] bottom-[-40px] opacity-20 transform rotate-12">
+                            <i className="fa-solid fa-rocket text-[180px]"></i>
+                        </div>
+                    </header>
+
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="bg-amber-100 p-3 w-12 h-12 flex items-center justify-center rounded-2xl text-amber-600">
+                                    <i className="fa-solid fa-star text-xl"></i>
+                                </div>
+                                <h3 className="text-xl font-bold">Tu Progreso</h3>
+                            </div>
+                            <p className="text-slate-600 mb-4">Has conseguido {earnedBadges.length} insignias. ¡Sigue así!</p>
+                            <div className="mb-2 flex justify-between text-sm font-bold text-slate-500">
+                                <span>Nivel {Math.floor(xp/100) + 1}</span>
+                                <span>{xp % 100} / 100 XP para el sig. nivel</span>
+                            </div>
+                            <div className="w-full bg-slate-100 rounded-full h-4 mb-4 overflow-hidden shadow-inner">
+                                <div className="bg-amber-400 h-4 rounded-full transition-all duration-1000" style={{ width: `${xp % 100}%` }}></div>
+                            </div>
+                            <button onClick={() => navigateTo('logros')} className="text-green-600 font-semibold hover:underline">
+                                Ver mis logros y notas &rarr;
+                            </button>
+                        </div>
+
+                        <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                            <div className="flex items-center gap-4 mb-4">
+                                <div className="bg-blue-100 p-3 w-12 h-12 flex items-center justify-center rounded-2xl text-blue-600">
+                                    <i className="fa-solid fa-bullhorn text-xl"></i>
+                                </div>
+                                <h3 className="text-xl font-bold">Tablón de Anuncios</h3>
+                            </div>
+                            <div className="space-y-3">
+                                <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded-r-lg">
+                                    <p className="text-sm font-bold text-blue-800">¡Nuevo Reto Final!</p>
+                                    <p className="text-xs text-blue-600 mt-1">El viernes termina la semana. Entra al Módulo 4 para entregar tu creación divertida de reparto.</p>
+                                </div>
+                            </div>
+                            <button onClick={() => navigateTo('modulo4')} className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition-colors shadow-sm">
+                                Ir al Módulo 4
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function OficinaProfesor() {
+            const [showRules, setShowRules] = useState(false);
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    <h2 className="text-2xl md:text-3xl font-bold text-slate-800 flex items-center gap-3">
+                        <i className="fa-solid fa-circle-info text-blue-500"></i> Oficina del Profesor
+                    </h2>
+
+                    {/* NUEVO: PRESENTACIÓN DE LA PROFESORA */}
+                    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 mb-8 flex flex-col md:flex-row items-center gap-6">
+                        <div className="w-24 h-24 md:w-32 md:h-32 shrink-0 rounded-full bg-blue-100 flex items-center justify-center text-5xl shadow-inner border-4 border-blue-200">
+                            👩‍🏫
+                        </div>
+                        <div>
+                            <h3 className="text-2xl font-black text-slate-800 mb-2">¡Hola! Soy la profesora Carmen 👋</h3>
+                            <p className="text-slate-600 text-lg leading-relaxed">
+                                Te doy la más cordial bienvenida a mi oficina virtual. He diseñado este Entorno Virtual de Aprendizaje (EVA) pensando especialmente en ti, para que descubras que aprender matemáticas puede ser una gran aventura llena de retos divertidos. Revisa cada rincón de esta oficina antes de empezar a jugar.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* MODAL DE REGLAS DEL JUEGO */}
+                    {showRules && (
+                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
+                            <div className="bg-white rounded-3xl max-w-2xl w-full p-6 md:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+                                <button onClick={() => setShowRules(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-800 bg-slate-100 rounded-full w-8 h-8 flex items-center justify-center transition-colors">
+                                    <i className="fa-solid fa-xmark"></i>
+                                </button>
+                                <h3 className="text-2xl font-black text-amber-500 mb-6 flex items-center gap-3">
+                                    <i className="fa-solid fa-scroll"></i> Reglas del Juego (Gamificación)
+                                </h3>
+                                <div className="space-y-4">
+                                    <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200">
+                                        <h4 className="font-bold text-amber-800 flex items-center gap-2 text-lg"><i className="fa-solid fa-heart text-red-500"></i> 1. El error es tu mejor amigo</h4>
+                                        <p className="text-slate-700 text-sm mt-1">Aquí no existen los ceros ni los castigos por equivocarse. Si fallas en un simulador, el sistema te dará una "pista".</p>
+                                    </div>
+                                    <div className="bg-green-50 p-4 rounded-2xl border border-green-200">
+                                        <h4 className="font-bold text-green-800 flex items-center gap-2 text-lg"><i className="fa-solid fa-star text-amber-500"></i> 2. Gana Puntos de Experiencia (XP)</h4>
+                                        <p className="text-slate-700 text-sm mt-1">¡Sube de nivel! Al ver videos y completar simuladores ganarás puntos de experiencia.</p>
+                                    </div>
+                                    <div className="bg-purple-50 p-4 rounded-2xl border border-purple-200">
+                                        <h4 className="font-bold text-purple-800 flex items-center gap-2 text-lg"><i className="fa-solid fa-graduation-cap text-purple-500"></i> 3. Notas de Cinco (5.0)</h4>
+                                        <p className="text-slate-700 text-sm mt-1">Tu esfuerzo vale oro. Si resuelves el reto con éxito, sin importar cuántos intentos, tu recompensa siempre será un 5.0.</p>
+                                    </div>
+                                </div>
+                                <div className="mt-8 text-center">
+                                    <button onClick={() => setShowRules(false)} className="bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-10 rounded-xl transition-transform hover:scale-105 shadow-md">
+                                        ¡Acepto el reto!
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* VIDEO EXPLICATIVO PRINCIPAL Y DETALLE DE MÓDULOS */}
+                    <div className="bg-indigo-600 rounded-3xl p-8 shadow-lg text-white mb-8 relative overflow-hidden">
+                        <div className="relative z-10">
+                            <h3 className="text-3xl font-black mb-4 flex items-center gap-3">
+                                <i className="fa-solid fa-chalkboard-user"></i> Presentación del Curso
+                            </h3>
+                            <p className="text-indigo-100 text-lg mb-6 max-w-2xl">
+                                ¡Bienvenidos! En este video explicativo te enseñaré detalladamente cómo navegaremos juntos por esta plataforma, cómo perderle el miedo a los errores y cómo funciona cada uno de nuestros módulos de aprendizaje.
+                            </p>
+                            <div className="aspect-video bg-slate-900 rounded-2xl flex items-center justify-center relative overflow-hidden group cursor-pointer border-4 border-indigo-400/50 shadow-2xl max-w-3xl mx-auto">
+                                <img src="https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&q=80&w=1000" alt="Profesor" className="opacity-60 w-full h-full object-cover transition-opacity group-hover:opacity-40" />
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                                    <i className="fa-solid fa-circle-play text-7xl mb-3 group-hover:scale-110 transition-transform text-white drop-shadow-lg"></i>
+                                    <p className="font-bold text-xl drop-shadow-md bg-black/40 px-4 py-1 rounded-full">Reproducir Video Explicativo</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="absolute right-[-20px] bottom-[-20px] opacity-10 transform rotate-12">
+                            <i className="fa-solid fa-compass text-[200px]"></i>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100 mb-8">
+                        <h3 className="text-2xl font-black text-slate-800 mb-6 border-b pb-4"><i className="fa-solid fa-map-location-dot text-indigo-500 mr-2"></i> Explicación Detallada de los Módulos</h3>
+                        
+                        <div className="space-y-6">
+                            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 hover:border-emerald-300 transition-all shadow-sm">
+                                <h4 className="font-bold text-xl text-emerald-700 flex items-center gap-3 mb-3">
+                                    <span className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600"><i className="fa-solid fa-cube"></i></span>
+                                    Módulo 1: Multiplicando Ando
+                                </h4>
+                                <p className="text-slate-700 leading-relaxed mb-3"><strong>Objetivo:</strong> Comprender la relación directa entre la multiplicación (como una suma repetida) y la división (como un reparto equitativo).</p>
+                                <p className="text-slate-600 text-sm">En este módulo realizaremos la exploración inicial a través de un video interactivo. Luego, nos enfrentaremos al <strong>Simulador de Reparto</strong>, donde tendrás que distribuir manzanas equitativamente en canastas. Finalizaremos derrotando al "Monstruo del Error", un cuestionario que te enseñará a corregir fallos matemáticos usando pistas.</p>
+                            </div>
+
+                            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 hover:border-teal-300 transition-all shadow-sm">
+                                <h4 className="font-bold text-xl text-teal-700 flex items-center gap-3 mb-3">
+                                    <span className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center text-teal-600"><i className="fa-solid fa-seedling"></i></span>
+                                    Módulo 2: El Jardín
+                                </h4>
+                                <p className="text-slate-700 leading-relaxed mb-3"><strong>Objetivo:</strong> Abstraer la multiplicación utilizando arreglos rectangulares bidimensionales (Filas × Columnas).</p>
+                                <p className="text-slate-600 text-sm">Aquí trabajaremos de forma más visual. Entenderemos que multiplicar no es solo sumar, sino organizar. A través del <strong>Simulador del Jardín</strong>, manipularás filas y columnas para lograr un número exacto de plantas (15). Esta técnica te permitirá resolver multiplicaciones grandes de forma gráfica y sin memorizar ciegamente las tablas.</p>
+                            </div>
+
+                            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 hover:border-orange-300 transition-all shadow-sm">
+                                <h4 className="font-bold text-xl text-orange-700 flex items-center gap-3 mb-3">
+                                    <span className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600"><i className="fa-solid fa-store"></i></span>
+                                    Módulo 3: El Mercado Escolar
+                                </h4>
+                                <p className="text-slate-700 leading-relaxed mb-3"><strong>Objetivo:</strong> Aplicar el Aprendizaje Basado en Problemas (ABP) integrando la multiplicación, la resta y la división en un escenario de la vida real.</p>
+                                <p className="text-slate-600 text-sm">Es el reto integrador. Iremos a la tienda escolar virtual utilizando Pesos Colombianos (COP). Aprenderás a deducir el costo total de tus productos (multiplicando), a calcular cuánto dinero te sobra al pagar con un billete grande (restando), y finalmente a repartir esa devuelta justamente con un compañero (dividiendo).</p>
+                            </div>
+
+                            <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 hover:border-rose-300 transition-all shadow-sm">
+                                <h4 className="font-bold text-xl text-rose-700 flex items-center gap-3 mb-3">
+                                    <span className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-600"><i className="fa-solid fa-upload"></i></span>
+                                    Módulo 4: Proyecto Final
+                                </h4>
+                                <p className="text-slate-700 leading-relaxed mb-3"><strong>Objetivo:</strong> Demostrar la comprensión lógica y la creatividad mediante la creación de un problema propio.</p>
+                                <p className="text-slate-600 text-sm">El nivel más alto de aprendizaje es crear. En este módulo, que cierra nuestra semana el día viernes, tú te conviertes en el profesor. Deberás inventar una actividad divertida de reparto usando objetos de tu casa, tomarle una foto o escribir un PDF, y subirlo al buzón de tareas de la plataforma.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+                        <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-6 md:p-8 mb-8 shadow-sm">
+                            <h3 className="text-2xl md:text-3xl font-black text-indigo-800 mb-4 flex items-center gap-3">
+                                <i className="fa-solid fa-book-open-reader"></i> Manual de Bienvenida
+                            </h3>
+                            <p className="text-slate-700 mb-6 leading-relaxed text-lg">
+                                ¡Hola, explorador! Cada módulo está dividido en 3 momentos mágicos: <strong>Inicio (Exploración)</strong>, <strong>Desarrollo (Práctica)</strong> y <strong>Cierre (Ampliación)</strong>. Todo está diseñado para que aprendas a tu propio ritmo.
+                            </p>
+                        </div>
+                        
+                        {/* NUEVO: SECCIÓN FORO DE RESCATE */}
+                        <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-6 mb-8 shadow-sm relative overflow-hidden">
+                            <div className="absolute right-[-20px] top-[-20px] opacity-10">
+                                <i className="fa-solid fa-life-ring text-[150px]"></i>
+                            </div>
+                            <div className="relative z-10">
+                                <h4 className="font-bold text-xl text-amber-800 flex items-center gap-3 mb-3">
+                                    <i className="fa-solid fa-life-ring text-amber-500"></i> ¿Te equivocaste o te sientes atascado? ¡Usa el Foro de Rescate!
+                                </h4>
+                                <p className="text-slate-700 leading-relaxed mb-2">
+                                    En esta plataforma, <strong>equivocarse es parte del aprendizaje</strong>. Si en algún momento no entiendes una pista de los simuladores o un reto se vuelve muy difícil, ¡no te rindas ni te frustres! En el menú principal de la izquierda encontrarás siempre nuestro <strong>Foro de Rescate</strong>.
+                                </p>
+                                <p className="text-slate-700 leading-relaxed bg-white/60 p-4 rounded-xl border border-amber-100">
+                                    <strong>¿Qué es exactamente el Foro de Rescate?</strong><br/>
+                                    Es un espacio colaborativo donde puedes escribir tus dudas y preguntas a la hora que sea. Tus compañeros de clase y yo estaremos ahí para leerte y responderte con explicaciones extra, ejemplos o consejos. Además, si tú entras al foro y ayudas a resolver la duda de un compañero, ¡te convertirás en un maestro y ganarás experiencia! Recuerda: pedir ayuda es de valientes.
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 hover:border-blue-300 transition-colors">
+                                <h4 className="font-bold text-slate-800 mb-2"><i className="fa-regular fa-calendar text-blue-500 mr-2"></i> Sílabo</h4>
+                                <p className="text-xs text-slate-600 mb-2">Descarga el plan de nuestros temas:</p>
+                                <ul className="text-xs text-slate-700 space-y-1 mb-2 ml-2 border-l-2 border-blue-200 pl-2">
+                                    <li>Módulo 1: Agrupar y repartir</li>
+                                    <li>Módulo 2: Arreglos del Jardín</li>
+                                    <li>Módulo 3: El Mercado Escolar</li>
+                                    <li>Módulo 4: Proyecto Final</li>
+                                </ul>
+                                <button className="mt-1 text-sm text-blue-600 font-bold hover:underline">Ver Documento</button>
+                            </div>
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 hover:border-amber-300 transition-colors">
+                                <h4 className="font-bold text-slate-800 mb-2"><i className="fa-solid fa-scroll text-amber-500 mr-2"></i> Reglas del Juego</h4>
+                                <p className="text-xs text-slate-600">Conoce cómo ganar insignias y notas perfectas de 5.0.</p>
+                                <button onClick={() => setShowRules(true)} className="mt-3 text-sm text-amber-600 font-bold hover:underline">Ver Reglas</button>
+                            </div>
+                            <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 hover:border-emerald-300 transition-colors">
+                                <h4 className="font-bold text-slate-800 mb-2"><i className="fa-solid fa-video text-emerald-500 mr-2"></i> Tutorías</h4>
+                                <p className="text-xs text-slate-600 mb-2">Agenda un espacio si necesitas ayuda. Horarios:</p>
+                                <ul className="text-xs text-emerald-700 space-y-1 mb-2 ml-2 list-disc">
+                                    <li>Mar: 3:00 PM - 5:00 PM</li>
+                                    <li>Jue: 4:00 PM - 6:00 PM</li>
+                                </ul>
+                                <button className="mt-1 text-sm text-emerald-600 font-bold hover:underline">Agendar (Forms)</button>
+                            </div>
+                            <div className="bg-red-50 p-4 rounded-2xl border border-red-200 hover:border-red-400 transition-colors">
+                                <h4 className="font-bold text-red-800 mb-2"><i className="fa-solid fa-envelope text-red-500 mr-2"></i> Contacto Directo</h4>
+                                <p className="text-xs text-red-700">Escríbeme a mi correo personal si tienes dudas urgentes.</p>
+                                <a href="mailto:luchi2004@gmail.com" className="mt-3 inline-block text-sm text-red-600 font-bold hover:underline break-all">luchi2004@gmail.com</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- MÓDULO 1 ---
+        function ModuloUno({ earnedBadges, setEarnedBadges, showToast, addXp, grades, recordGrade }) {
+            const [activeTask, setActiveTask] = useState(1);
+
+            const handleVideoComment = () => {
+                if (!earnedBadges.includes('Comentarista 1')) {
+                    setEarnedBadges([...earnedBadges, 'Comentarista 1']);
+                    showToast('¡Insignia ganada: Comentarista! 🏅');
+                    addXp(20);
+                }
+            };
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="bg-emerald-600 rounded-3xl p-6 md:p-8 text-white shadow-md bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
+                        <h2 className="text-2xl md:text-3xl font-bold mb-2">Módulo 1: Multiplicando Ando</h2>
+                        <p className="text-emerald-100 mb-4">Semana 1: El misterio de agrupar y repartir equitativamente.</p>
+                        <PanelCalificaciones items={[{ name: 'Práctica Reparto', score: grades.mod1_sim }]} />
+                    </div>
+
+                    <div className="space-y-4">
+                        {/* MOMENTO 1: INICIO */}
+                        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                            <div className={`p-4 flex items-center justify-between cursor-pointer ${activeTask === 1 ? 'bg-indigo-50 border-b border-indigo-200' : ''}`} onClick={() => setActiveTask(1)}>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                                        <i className="fa-solid fa-compass text-lg"></i>
+                                    </div>
+                                    <h3 className="font-bold text-lg text-slate-800">Momento 1: Inicio (Exploración)</h3>
+                                </div>
+                                <span className="text-sm font-semibold text-slate-500">{activeTask === 1 ? 'Ocultar' : 'Ver'}</span>
+                            </div>
+                            
+                            {activeTask === 1 && (
+                                <div className="p-4 md:p-6">
+                                    <div className="bg-indigo-50 border-l-4 border-indigo-500 p-4 mb-6 rounded-r-xl shadow-sm">
+                                        <p className="text-slate-700 text-sm leading-relaxed">
+                                            <strong>Te invito a ver el siguiente video</strong> para explorar la plataforma y descubrir cómo la multiplicación y el reparto están conectados. Luego, <strong>comenta abajo lo que entendiste</strong>.
+                                        </p>
+                                    </div>
+                                    <div className="aspect-video bg-slate-800 rounded-xl flex items-center justify-center mb-4 relative overflow-hidden group border border-slate-300">
+                                        <img src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=60" className="opacity-50 w-full h-full object-cover group-hover:opacity-40 transition-opacity" alt="Video cover"/>
+                                        <i className="fa-brands fa-youtube text-white text-6xl opacity-90 group-hover:opacity-100 group-hover:scale-110 group-hover:text-red-500 transition-all absolute"></i>
+                                    </div>
+                                    <CommentBox onComplete={handleVideoComment} isCompleted={earnedBadges.includes('Comentarista 1')} />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* MOMENTO 2: DESARROLLO */}
+                        <div className="bg-white rounded-2xl border border-blue-200 overflow-hidden shadow-sm ring-1 ring-blue-100">
+                            <div className={`p-4 flex items-center justify-between cursor-pointer ${activeTask === 2 ? 'bg-blue-50 border-b border-blue-200' : ''}`} onClick={() => setActiveTask(2)}>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 flex items-center justify-center rounded-full bg-blue-100 text-blue-600">
+                                        <i className="fa-solid fa-gamepad text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg text-slate-800">Momento 2: Desarrollo (Práctica)</h3>
+                                    </div>
+                                </div>
+                                <span className="text-sm font-semibold text-slate-500">{activeTask === 2 ? 'Ocultar' : 'Jugar'}</span>
+                            </div>
+                            
+                            {activeTask === 2 && (
+                                <div className="p-4 md:p-6 bg-slate-50">
+                                    <div className="bg-white p-6 rounded-xl border border-slate-200 mb-6 shadow-sm">
+                                        <h4 className="font-bold flex items-center gap-2 mb-4 text-slate-800 text-lg border-b pb-2">
+                                            <i className="fa-solid fa-list-ol text-blue-500"></i> Instrucciones Detalladas para el Simulador
+                                        </h4>
+                                        <div className="space-y-4 text-sm text-slate-600">
+                                            <p><strong>Paso 1: Observa tu inventario.</strong> En la parte superior verás que tienes exactamente <strong>12 manzanas</strong> frescas listas para ser enviadas a la tienda escolar.</p>
+                                            <p><strong>Paso 2: Conoce tus canastas.</strong> Tienes 3 canastas vacías. Tu objetivo matemático es hacer un <em>reparto equitativo</em>. Esto significa que ninguna canasta puede tener más o menos manzanas que las demás.</p>
+                                            <p><strong>Paso 3: Comienza a repartir.</strong> Haz clic en el botón naranja <strong>"Poner Manzana"</strong> debajo de cada canasta. Te sugiero ir poniendo una por una en cada canasta, en orden (1, 2, 3... y volver a empezar), tal como repartirías cartas en un juego.</p>
+                                            <p><strong>Paso 4: Corrige tus errores.</strong> ¿Pusiste demasiadas en una sola canasta? ¡No pasa nada! Haz clic directamente sobre la manzana que está dentro de la canasta para sacarla y devolverla a tu inventario.</p>
+                                            <p><strong>Paso 5: Verifica tu trabajo.</strong> Cuando el contador de "Manzanas por repartir" llegue a cero (0), presiona el botón azul <strong>"Revisar"</strong>. Si todas las canastas tienen el mismo número, ¡habrás resuelto tu primera división!</p>
+                                        </div>
+                                    </div>
+                                    <SimulatorGame onComplete={() => {
+                                        if(!earnedBadges.includes('Maestro del Reparto')) {
+                                            setEarnedBadges([...earnedBadges, 'Maestro del Reparto']);
+                                            addXp(50);
+                                        }
+                                        recordGrade('mod1_sim', '5.0');
+                                    }} />
+                                    
+                                    <div className="mt-8 border-t border-slate-200 pt-8">
+                                        <h4 className="font-bold text-slate-800 text-lg mb-4"><i className="fa-solid fa-ghost text-purple-500"></i> Práctica Extra: El Monstruo</h4>
+                                        <p className="text-sm text-slate-600 mb-4">Responde las preguntas para vencer al monstruo. ¡Si fallas, te daremos pistas!</p>
+                                        <MonsterQuiz onComplete={() => {
+                                            if(!earnedBadges.includes('Vencedor del Monstruo')) {
+                                                setEarnedBadges([...earnedBadges, 'Vencedor del Monstruo']);
+                                                addXp(30);
+                                            }
+                                        }} />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* MOMENTO 3: CIERRE */}
+                        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                            <div className={`p-4 flex items-center justify-between cursor-pointer ${activeTask === 3 ? 'bg-amber-50 border-b border-amber-200' : ''}`} onClick={() => setActiveTask(3)}>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 flex items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                                        <i className="fa-solid fa-link text-lg"></i>
+                                    </div>
+                                    <h3 className="font-bold text-lg text-slate-800">Momento 3: Cierre (Ampliación)</h3>
+                                </div>
+                                <span className="text-sm font-semibold text-slate-500">{activeTask === 3 ? 'Ocultar' : 'Ver'}</span>
+                            </div>
+                            
+                            {activeTask === 3 && (
+                                <div className="p-4 md:p-6 bg-slate-50">
+                                    <div className="bg-amber-50 border border-amber-200 p-5 mb-6 rounded-xl shadow-sm text-center">
+                                        <h4 className="font-bold text-amber-800 text-lg mb-2">¡Para entender más sobre Reparto!</h4>
+                                        <p className="text-slate-700 text-sm leading-relaxed mb-4">
+                                            Te invito a ver los siguientes enlaces donde encontrarás juegos divertidos e información extra para convertirte en un experto haciendo repartos justos (divisiones).
+                                        </p>
+                                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                                            <a href="#" className="bg-white border border-slate-300 hover:border-amber-400 text-slate-700 px-4 py-2 rounded-lg font-bold shadow-sm transition-colors text-sm">
+                                                <i className="fa-solid fa-gamepad text-amber-500 mr-2"></i> Juego: Juegos Infantiles Pum
+                                            </a>
+                                            <a href="#" className="bg-white border border-slate-300 hover:border-amber-400 text-slate-700 px-4 py-2 rounded-lg font-bold shadow-sm transition-colors text-sm">
+                                                <i className="fa-solid fa-book text-blue-500 mr-2"></i> Lectura: Árbol ABC
+                                            </a>
+                                        </div>
+                                    </div>
+
+                                    {/* Cápsula de Errores */}
+                                    <div className="bg-white p-5 rounded-xl border border-red-200 shadow-sm flex flex-col lg:flex-row gap-6">
+                                        <div className="flex-1">
+                                            <h4 className="font-bold flex items-center gap-2 mb-3 text-red-700 text-lg">
+                                                <i className="fa-solid fa-triangle-exclamation text-red-500"></i> Cápsula de Errores Comunes
+                                            </h4>
+                                            <p className="text-slate-700 text-sm mb-2">
+                                                ¿Te sobraron manzanas? Recuerda que en un <em>reparto equitativo</em>, <strong>todas</strong> las canastas deben tener exactamente la misma cantidad.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                    </div>
+                </div>
+            );
+        }
+
+        // --- MÓDULO 2 (MULTIPLICACIÓN VISUAL) ---
+        function ModuloDos({ earnedBadges, setEarnedBadges, showToast, addXp, grades, recordGrade }) {
+            const [activeTask, setActiveTask] = useState(1);
+
+            const handleVideoComment = () => {
+                if (!earnedBadges.includes('Comentarista 2')) {
+                    setEarnedBadges([...earnedBadges, 'Comentarista 2']);
+                    showToast('¡Insignia ganada: Comentarista de Jardín! 🌱');
+                    addXp(20);
+                }
+            };
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="bg-teal-600 rounded-3xl p-6 md:p-8 text-white shadow-md bg-[url('https://www.transparenttextures.com/patterns/black-scales.png')]">
+                        <h2 className="text-2xl md:text-3xl font-bold mb-2">Módulo 2: El Jardín</h2>
+                        <p className="text-teal-100 mb-4">Semana 2: Comprendiendo la multiplicación con arreglos rectangulares (filas y columnas).</p>
+                        <PanelCalificaciones items={[{ name: 'Práctica Jardín', score: grades.mod2_sim }]} />
+                    </div>
+
+                    <div className="space-y-4">
+                        {/* MOMENTO 1: INICIO */}
+                        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                            <div className={`p-4 flex items-center justify-between cursor-pointer ${activeTask === 1 ? 'bg-indigo-50 border-b border-indigo-200' : ''}`} onClick={() => setActiveTask(1)}>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                                        <i className="fa-solid fa-compass text-lg"></i>
+                                    </div>
+                                    <h3 className="font-bold text-lg text-slate-800">Momento 1: Inicio (Exploración)</h3>
+                                </div>
+                                <span className="text-sm font-semibold text-slate-500">{activeTask === 1 ? 'Ocultar' : 'Ver'}</span>
+                            </div>
+                            
+                            {activeTask === 1 && (
+                                <div className="p-4 md:p-6">
+                                    <div className="bg-indigo-50 border-l-4 border-indigo-500 p-4 mb-6 rounded-r-xl shadow-sm">
+                                        <p className="text-slate-700 text-sm leading-relaxed">
+                                            <strong>Te invito a ver el siguiente video</strong> para explorar cómo la naturaleza usa las matemáticas. Las plantas crecen ordenadas en "arreglos". Luego, <strong>comenta abajo qué entendiste sobre las filas y las columnas</strong>.
+                                        </p>
+                                    </div>
+                                    <div className="aspect-video bg-slate-800 rounded-xl flex items-center justify-center mb-4 relative overflow-hidden group border border-slate-300">
+                                        <img src="https://images.unsplash.com/photo-1595844730298-b960fadabcd0?auto=format&fit=crop&w=800&q=60" className="opacity-50 w-full h-full object-cover group-hover:opacity-40 transition-opacity" alt="Video cover"/>
+                                        <i className="fa-brands fa-youtube text-white text-6xl opacity-90 group-hover:opacity-100 group-hover:scale-110 group-hover:text-red-500 transition-all absolute"></i>
+                                    </div>
+                                    <CommentBox onComplete={handleVideoComment} isCompleted={earnedBadges.includes('Comentarista 2')} />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* MOMENTO 2: DESARROLLO */}
+                        <div className="bg-white rounded-2xl border border-teal-200 overflow-hidden shadow-sm ring-1 ring-teal-100">
+                            <div className={`p-4 flex items-center justify-between cursor-pointer ${activeTask === 2 ? 'bg-teal-50 border-b border-teal-200' : ''}`} onClick={() => setActiveTask(2)}>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 flex items-center justify-center rounded-full bg-teal-100 text-teal-600">
+                                        <i className="fa-solid fa-seedling text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg text-slate-800">Momento 2: Desarrollo (Práctica)</h3>
+                                    </div>
+                                </div>
+                                <span className="text-sm font-semibold text-slate-500">{activeTask === 2 ? 'Ocultar' : 'Jugar'}</span>
+                            </div>
+                            
+                            {activeTask === 2 && (
+                                <div className="p-4 md:p-6 bg-slate-50">
+                                    <div className="bg-white p-6 rounded-xl border border-slate-200 mb-6 shadow-sm">
+                                        <h4 className="font-bold flex items-center gap-2 mb-4 text-slate-800 text-lg border-b pb-2">
+                                            <i className="fa-solid fa-list-ol text-teal-500"></i> Instrucciones Detalladas para el Simulador
+                                        </h4>
+                                        <div className="space-y-4 text-sm text-slate-600">
+                                            <p><strong>Paso 1: Entiende tu terreno.</strong> Tienes un campo de tierra fértil. Tu objetivo es sembrar exactamente <strong>15 plantas</strong> en total, pero deben estar perfectamente ordenadas.</p>
+                                            <p><strong>Paso 2: Ajusta las Filas.</strong> Usa la primera barra deslizante para elegir cuántas líneas de plantas irán de arriba hacia abajo (horizontalmente). Observa cómo cambia el dibujo del jardín en tiempo real.</p>
+                                            <p><strong>Paso 3: Ajusta las Columnas.</strong> Usa la segunda barra deslizante para elegir cuántas plantas irán de lado a lado (verticalmente). Fíjate que al cruzar filas y columnas se forma un rectángulo perfecto. A esto en matemáticas le llamamos "Arreglo Rectangular".</p>
+                                            <p><strong>Paso 4: Encuentra la multiplicación secreta.</strong> Observa el cuadro gris que dice "X filas × Y columnas = Total". Juega con las barras hasta que ese Total sea exactamente 15.</p>
+                                            <p><strong>Paso 5: ¡Misión cumplida automática!</strong> No necesitas presionar ningún botón de revisar. En cuanto tu jardín tenga el arreglo perfecto de 15 plantas, el sistema te avisará que lo has logrado y entenderás qué números multiplicados dan 15.</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <SimulatorGarden onComplete={() => {
+                                        if(!earnedBadges.includes('Agricultor Experto')) {
+                                            setEarnedBadges([...earnedBadges, 'Agricultor Experto']);
+                                            addXp(50);
+                                        }
+                                        recordGrade('mod2_sim', '5.0');
+                                    }} />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* MOMENTO 3: CIERRE */}
+                        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                            <div className={`p-4 flex items-center justify-between cursor-pointer ${activeTask === 3 ? 'bg-amber-50 border-b border-amber-200' : ''}`} onClick={() => setActiveTask(3)}>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 flex items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                                        <i className="fa-solid fa-link text-lg"></i>
+                                    </div>
+                                    <h3 className="font-bold text-lg text-slate-800">Momento 3: Cierre (Ampliación)</h3>
+                                </div>
+                                <span className="text-sm font-semibold text-slate-500">{activeTask === 3 ? 'Ocultar' : 'Ver'}</span>
+                            </div>
+                            
+                            {activeTask === 3 && (
+                                <div className="p-4 md:p-6 bg-slate-50">
+                                    <div className="bg-amber-50 border border-amber-200 p-5 mb-6 rounded-xl shadow-sm text-center">
+                                        <h4 className="font-bold text-amber-800 text-lg mb-2">¡Para entender más sobre Arreglos!</h4>
+                                        <p className="text-slate-700 text-sm leading-relaxed mb-4">
+                                            Te invito a ver los siguientes enlaces donde encontrarás información maravillosa para entender cómo la multiplicación nos ayuda a no contar de uno en uno.
+                                        </p>
+                                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                                            <a href="#" className="bg-white border border-slate-300 hover:border-amber-400 text-slate-700 px-4 py-2 rounded-lg font-bold shadow-sm transition-colors text-sm">
+                                                <i className="fa-solid fa-shapes text-purple-500 mr-2"></i> Interactivos Math Playground
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- MÓDULO 3 (EL MERCADO) ---
+        function ModuloTres({ earnedBadges, setEarnedBadges, showToast, addXp, grades, recordGrade }) {
+            const [activeTask, setActiveTask] = useState(1);
+
+            const handleVideoComment = () => {
+                if (!earnedBadges.includes('Comentarista 3')) {
+                    setEarnedBadges([...earnedBadges, 'Comentarista 3']);
+                    showToast('¡Insignia ganada: Comentarista de Mercado! 🛒');
+                    addXp(20);
+                }
+            };
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="bg-orange-500 rounded-3xl p-6 md:p-8 text-white shadow-md bg-[url('https://www.transparenttextures.com/patterns/food.png')]">
+                        <h2 className="text-2xl md:text-3xl font-bold mb-2">Módulo 3: El Mercado Escolar</h2>
+                        <p className="text-orange-100 mb-4">Semana 3: Integración de multiplicación y división aplicadas a compras reales en la tienda.</p>
+                        <PanelCalificaciones items={[{ name: 'Reto: Compras', score: grades.mod3_sim }]} />
+                    </div>
+
+                    <div className="space-y-4">
+                        {/* MOMENTO 1: INICIO */}
+                        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                            <div className={`p-4 flex items-center justify-between cursor-pointer ${activeTask === 1 ? 'bg-indigo-50 border-b border-indigo-200' : ''}`} onClick={() => setActiveTask(1)}>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 flex items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                                        <i className="fa-solid fa-compass text-lg"></i>
+                                    </div>
+                                    <h3 className="font-bold text-lg text-slate-800">Momento 1: Inicio (Exploración)</h3>
+                                </div>
+                                <span className="text-sm font-semibold text-slate-500">{activeTask === 1 ? 'Ocultar' : 'Ver'}</span>
+                            </div>
+                            
+                            {activeTask === 1 && (
+                                <div className="p-4 md:p-6">
+                                    <div className="bg-indigo-50 border-l-4 border-indigo-500 p-4 mb-6 rounded-r-xl shadow-sm">
+                                        <p className="text-slate-700 text-sm leading-relaxed">
+                                            <strong>Te invito a ver el siguiente video</strong> sobre cómo usamos la matemática cuando vamos a la tienda escolar. Luego, <strong>comenta abajo: ¿alguna vez te ha tocado repartir la devuelta con un amigo?</strong>.
+                                        </p>
+                                    </div>
+                                    <div className="aspect-video bg-slate-800 rounded-xl flex items-center justify-center mb-4 relative overflow-hidden group border border-slate-300">
+                                        <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=60" className="opacity-50 w-full h-full object-cover group-hover:opacity-40 transition-opacity" alt="Video cover"/>
+                                        <i className="fa-brands fa-youtube text-white text-6xl opacity-90 group-hover:opacity-100 group-hover:scale-110 group-hover:text-red-500 transition-all absolute"></i>
+                                    </div>
+                                    <CommentBox onComplete={handleVideoComment} isCompleted={earnedBadges.includes('Comentarista 3')} />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* MOMENTO 2: DESARROLLO */}
+                        <div className="bg-white rounded-2xl border border-orange-200 overflow-hidden shadow-sm ring-1 ring-orange-100">
+                            <div className={`p-4 flex items-center justify-between cursor-pointer ${activeTask === 2 ? 'bg-orange-50 border-b border-orange-200' : ''}`} onClick={() => setActiveTask(2)}>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 flex items-center justify-center rounded-full bg-orange-100 text-orange-600">
+                                        <i className="fa-solid fa-store text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <h3 className="font-bold text-lg text-slate-800">Momento 2: Desarrollo (Práctica)</h3>
+                                    </div>
+                                </div>
+                                <span className="text-sm font-semibold text-slate-500">{activeTask === 2 ? 'Ocultar' : 'Jugar'}</span>
+                            </div>
+                            
+                            {activeTask === 2 && (
+                                <div className="p-4 md:p-6 bg-slate-50">
+                                    <div className="bg-white p-6 rounded-xl border border-slate-200 mb-6 shadow-sm">
+                                        <h4 className="font-bold flex items-center gap-2 mb-4 text-slate-800 text-lg border-b pb-2">
+                                            <i className="fa-solid fa-list-ol text-orange-500"></i> Instrucciones Detalladas de la Actividad
+                                        </h4>
+                                        <div className="space-y-4 text-sm text-slate-600">
+                                            <p><strong>Paso 1: Lee y visualiza el problema.</strong> En cada etapa, aparecerá un texto explicándote la situación en la tienda escolar. Arriba verás dibujos (como empanadas o billetes) que te ayudarán a imaginar que estás allí realmente.</p>
+                                            <p><strong>Paso 2: Elige la operación correcta.</strong> Piensa como un experto en finanzas:<br/>
+                                               - Si vas a comprar varias cosas del mismo precio, ¿qué haces? <em>(¡Multiplicar!)</em><br/>
+                                               - Si vas a pagar y necesitas saber cuánto te sobra, ¿qué haces? <em>(¡Restar!)</em><br/>
+                                               - Si vas a compartir la devuelta en partes iguales, ¿qué haces? <em>(¡Dividir!)</em></p>
+                                            <p><strong>Paso 3: Realiza el cálculo.</strong> Toma un lápiz y papel, o haz el cálculo mentalmente. Escribe únicamente el número de tu respuesta en la casilla en blanco que tiene el símbolo de pesos ($).</p>
+                                            <p><strong>Paso 4: Presiona Revisar.</strong> Haz clic en el botón naranja "Revisar".</p>
+                                            <p><strong>Paso 5: Usa las pistas a tu favor.</strong> Si tu cálculo no es correcto, la pantalla no te pondrá un cero. En su lugar, te mostrará un mensaje amarillo con una "Pista" que te guiará para encontrar el resultado. ¡Inténtalo las veces que necesites!</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <SimulatorMarket onComplete={() => {
+                                        if(!earnedBadges.includes('Comprador Experto')) {
+                                            setEarnedBadges([...earnedBadges, 'Comprador Experto']);
+                                            addXp(100);
+                                        }
+                                        recordGrade('mod3_sim', '5.0');
+                                    }} />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* MOMENTO 3: CIERRE */}
+                        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                            <div className={`p-4 flex items-center justify-between cursor-pointer ${activeTask === 3 ? 'bg-amber-50 border-b border-amber-200' : ''}`} onClick={() => setActiveTask(3)}>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 flex items-center justify-center rounded-full bg-amber-100 text-amber-600">
+                                        <i className="fa-solid fa-link text-lg"></i>
+                                    </div>
+                                    <h3 className="font-bold text-lg text-slate-800">Momento 3: Cierre (Ampliación)</h3>
+                                </div>
+                                <span className="text-sm font-semibold text-slate-500">{activeTask === 3 ? 'Ocultar' : 'Ver'}</span>
+                            </div>
+                            
+                            {activeTask === 3 && (
+                                <div className="p-4 md:p-6 bg-slate-50">
+                                    <div className="bg-amber-50 border border-amber-200 p-5 mb-6 rounded-xl shadow-sm text-center">
+                                        <h4 className="font-bold text-amber-800 text-lg mb-2">¡Conviértete en un experto financiero!</h4>
+                                        <p className="text-slate-700 text-sm leading-relaxed mb-4">
+                                            Te invito a ver los siguientes enlaces donde encontrarás juegos de tiendas para entender más sobre el tema de compras, dinero y reparto.
+                                        </p>
+                                        <div className="flex justify-center">
+                                            <a href="#" className="bg-white border border-slate-300 hover:border-amber-400 text-slate-700 px-4 py-2 rounded-lg font-bold shadow-sm transition-colors text-sm">
+                                                <i className="fa-solid fa-coins text-green-500 mr-2"></i> Juego: La Tienda Mágica
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- NUEVO: MÓDULO 4 (PROYECTO FINAL) ---
+        function ModuloCuatro({ earnedBadges, setEarnedBadges, showToast, addXp, grades, recordGrade }) {
+            const [fileUploaded, setFileUploaded] = useState(false);
+
+            const handleUpload = () => {
+                setFileUploaded(true);
+                if (!earnedBadges.includes('Creador Maestro')) {
+                    setEarnedBadges([...earnedBadges, 'Creador Maestro']);
+                    showToast('¡Insignia ganada: Creador Maestro! 🌟');
+                    addXp(200);
+                    recordGrade('mod4_upload', '5.0');
+                }
+            };
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    <div className="bg-rose-600 rounded-3xl p-6 md:p-8 text-white shadow-md bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]">
+                        <h2 className="text-2xl md:text-3xl font-bold mb-2">Módulo 4: Tu Turno de Repartir</h2>
+                        <p className="text-rose-100 mb-4">Semana 4: Demuestra tu creatividad haciendo tu propio problema de reparto.</p>
+                        <PanelCalificaciones items={[{ name: 'Proyecto Final', score: grades.mod4_upload }]} />
+                    </div>
+
+                    <div className="bg-white rounded-2xl border border-rose-200 overflow-hidden shadow-sm ring-1 ring-rose-100 p-6 md:p-8">
+                        <div className="bg-rose-50 border-l-4 border-rose-500 p-5 mb-8 rounded-r-xl shadow-sm">
+                            <h4 className="font-bold text-rose-800 flex items-center gap-2 mb-2 text-xl">
+                                <i className="fa-solid fa-palette text-rose-600"></i> ¡Crea tu propia actividad divertida!
+                            </h4>
+                            <p className="text-slate-700 leading-relaxed mb-4">
+                                Ahora eres tú el profesor. Inventa un juego, un dibujo o un problema en casa donde tengas que hacer un <strong>reparto justo (división)</strong>. Puedes usar tus juguetes, colores, tapitas o incluso frutas de la cocina.
+                            </p>
+                            <p className="text-slate-700 leading-relaxed font-bold bg-white px-4 py-2 rounded-lg border border-rose-200 inline-block shadow-sm">
+                                <i className="fa-regular fa-calendar-check text-rose-600 mr-2"></i> 
+                                Fecha límite: Este Viernes, al finalizar la semana.
+                            </p>
+                        </div>
+
+                        <div className="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center bg-slate-50 hover:bg-slate-100 transition-colors">
+                            {fileUploaded ? (
+                                <div className="animate-fade-in text-green-600">
+                                    <i className="fa-solid fa-cloud-arrow-up text-6xl mb-4"></i>
+                                    <h3 className="text-xl font-bold mb-2">¡Tarea Entregada!</h3>
+                                    <p className="text-slate-600">Has subido tu archivo exitosamente. ¡Eres un creador maestro!</p>
+                                </div>
+                            ) : (
+                                <div className="animate-fade-in">
+                                    <i className="fa-solid fa-file-arrow-up text-6xl text-slate-400 mb-4"></i>
+                                    <h3 className="text-lg font-bold text-slate-700 mb-2">Sube la foto de tu actividad aquí</h3>
+                                    <p className="text-sm text-slate-500 mb-6">Formatos: JPG, PNG o PDF</p>
+                                    <button onClick={handleUpload} className="bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 px-8 rounded-xl shadow-sm transition-transform hover:scale-105">
+                                        <i className="fa-solid fa-upload mr-2"></i> Subir Archivo (Simulación)
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- COMPONENTES SIMULADORES Y JUEGOS ---
+
+        function SimulatorGame({ onComplete }) {
+            const TOTAL_APPLES = 12;
+            const BASKET_COUNT = 3;
+            
+            const [unassignedApples, setUnassignedApples] = useState(TOTAL_APPLES);
+            const [baskets, setBaskets] = useState(Array(BASKET_COUNT).fill(0));
+            const [feedback, setFeedback] = useState("");
+            const [isSuccess, setIsSuccess] = useState(false);
+
+            const addAppleToBasket = (index) => {
+                if (unassignedApples > 0) {
+                    const newBaskets = [...baskets];
+                    newBaskets[index] += 1;
+                    setBaskets(newBaskets);
+                    setUnassignedApples(unassignedApples - 1);
+                    setFeedback("");
+                } else {
+                    setFeedback("Pista: Ya no tienes manzanas. ¡Usa el botón reiniciar o saca manzanas si te equivocaste!");
+                }
+            };
+
+            const removeAppleFromBasket = (index) => {
+                if(baskets[index] > 0){
+                    const newBaskets = [...baskets];
+                    newBaskets[index] -= 1;
+                    setBaskets(newBaskets);
+                    setUnassignedApples(unassignedApples + 1);
+                    setFeedback("");
+                }
+            }
+
+            const checkResult = () => {
+                if (unassignedApples > 0) {
+                    setFeedback("Pista: ¡Aún te quedan manzanas por repartir!");
+                    return;
+                }
+                
+                const targetAmount = TOTAL_APPLES / BASKET_COUNT;
+                const allEqual = baskets.every(amount => amount === targetAmount);
+
+                if (allEqual) {
+                    setFeedback("¡Excelente! Has repartido 12 manzanas entre 3 canastas. Cada una tiene 4. ¡Acabas de hacer la división 12 ÷ 3 = 4!");
+                    setIsSuccess(true);
+                    onComplete();
+                } else {
+                    setFeedback("Pista: Recuerda que para ser un 'reparto equitativo', todas las canastas deben tener la misma cantidad.");
+                }
+            };
+
+            const resetGame = () => {
+                setUnassignedApples(TOTAL_APPLES);
+                setBaskets(Array(BASKET_COUNT).fill(0));
+                setFeedback("");
+                setIsSuccess(false);
+            };
+
+            return (
+                <div className="bg-white border-2 border-slate-200 rounded-2xl p-4 shadow-sm relative overflow-hidden">
+                    <div className="flex justify-between items-center mb-6 bg-slate-100 p-3 rounded-xl border border-slate-200">
+                        <div className="font-bold text-slate-700 text-lg flex items-center">
+                            Manzanas: 
+                            <span className="text-red-500 text-2xl font-black ml-2 px-3 py-1 bg-white rounded-lg shadow-sm border border-slate-200">{unassignedApples}</span> 
+                        </div>
+                        <button onClick={resetGame} className="text-slate-500 hover:text-slate-800 text-sm font-semibold underline px-2 py-1 rounded hover:bg-slate-200">
+                            <i className="fa-solid fa-rotate-right mr-1"></i> Reiniciar
+                        </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                        {baskets.map((amount, index) => (
+                            <div key={index} className="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 flex flex-col items-center shadow-sm">
+                                <h5 className="font-bold text-amber-800 mb-2">Canasta {index + 1}</h5>
+                                <div className="h-28 w-full bg-[#fde68a55] rounded-lg flex flex-wrap content-start p-2 gap-1 mb-4 border-2 border-dashed border-amber-300 cursor-pointer hover:bg-amber-100" onClick={() => removeAppleFromBasket(index)}>
+                                    {amount === 0 && <span className="text-amber-300/50 font-bold m-auto">Vacía</span>}
+                                    {Array.from({ length: amount }).map((_, i) => (
+                                        <span key={i} className="text-2xl animate-bounce-short drop-shadow-sm">🍎</span>
+                                    ))}
+                                </div>
+                                <div className="text-sm font-bold text-amber-700 mb-2 bg-amber-200 px-3 py-1 rounded-full">Total: {amount}</div>
+                                <button onClick={() => addAppleToBasket(index)} disabled={unassignedApples === 0} className="w-full bg-amber-500 hover:bg-amber-600 disabled:bg-slate-300 text-white font-bold py-2 px-4 rounded-lg shadow-sm transition-colors">
+                                    <i className="fa-solid fa-plus mr-1"></i> Poner Manzana
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="text-center mt-8 border-t border-slate-100 pt-6">
+                        <button onClick={checkResult} className={`font-bold py-3 px-8 rounded-xl text-lg shadow-md transition-all ${isSuccess ? 'bg-green-500 text-white cursor-default scale-105' : 'bg-blue-600 hover:bg-blue-700 text-white hover:scale-105'}`}>
+                            {isSuccess ? <span><i className="fa-solid fa-check-double mr-2"></i> ¡Completado!</span> : <span><i className="fa-solid fa-magnifying-glass mr-2"></i> Revisar</span>}
+                        </button>
+                    </div>
+
+                    {feedback && (
+                        <div className={`mt-6 p-4 rounded-xl border flex gap-3 items-start shadow-sm ${isSuccess ? 'bg-green-50 border-green-200 text-green-800' : 'bg-blue-50 border-blue-200 text-blue-800'} animate-fade-in`}>
+                            <p className="font-medium">{feedback}</p>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        function SimulatorGarden({ onComplete }) {
+            const [rows, setRows] = useState(2);
+            const [cols, setCols] = useState(3);
+            const target = 15;
+            const total = rows * cols;
+            const isSuccess = total === target;
+
+            useEffect(() => {
+                if (isSuccess) onComplete();
+            }, [isSuccess]);
+
+            return (
+                <div className="bg-white border-2 border-slate-200 rounded-2xl p-6 shadow-sm">
+                    <div className="flex flex-col md:flex-row gap-8">
+                        <div className="flex-1 space-y-6">
+                            <div>
+                                <label className="font-bold text-slate-700 flex justify-between"><span>Filas (Hacia abajo): {rows}</span></label>
+                                <input type="range" min="1" max="6" value={rows} onChange={(e) => setRows(parseInt(e.target.value))} className="w-full accent-teal-500 mt-2" />
+                            </div>
+                            <div>
+                                <label className="font-bold text-slate-700 flex justify-between"><span>Columnas (Hacia un lado): {cols}</span></label>
+                                <input type="range" min="1" max="6" value={cols} onChange={(e) => setCols(parseInt(e.target.value))} className="w-full accent-teal-500 mt-2" />
+                            </div>
+                            <div className="bg-slate-100 p-4 rounded-xl border border-slate-200">
+                                <p className="text-center text-lg text-slate-700">
+                                    <strong>{rows}</strong> filas <i className="fa-solid fa-xmark text-xs mx-1"></i> <strong>{cols}</strong> columnas = <strong className="text-2xl text-teal-600">{total}</strong> plantas
+                                </p>
+                            </div>
+                            {isSuccess && (
+                                <div className="bg-green-50 border border-green-200 p-4 rounded-xl text-green-800 animate-fade-in">
+                                    <p className="text-sm font-bold">¡Lo lograste! {rows} × {cols} = 15.</p>
+                                </div>
+                            )}
+                        </div>
+                        <div className="flex-1">
+                            <div className="bg-[#8B5A2B] p-4 rounded-xl shadow-inner min-h-[200px] flex flex-col justify-center items-center border-4 border-[#654321]">
+                                {Array.from({ length: rows }).map((_, rIndex) => (
+                                    <div key={rIndex} className="flex">
+                                        {Array.from({ length: cols }).map((_, cIndex) => (
+                                            <div key={cIndex} className="w-10 h-10 m-1 bg-green-500 rounded-t-full rounded-bl-full transform -rotate-45 shadow-sm border border-green-600 flex items-center justify-center animate-fade-in">
+                                                <div className="w-2 h-4 bg-green-700 rounded-full transform rotate-45"></div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function SimulatorMarket({ onComplete }) {
+            const [step, setStep] = useState(1);
+            const [inputValue, setInputValue] = useState('');
+            const [feedback, setFeedback] = useState(null);
+            
+            const totalCost = 600; const change = 400; const split = 200;
+
+            const checkAnswer = () => {
+                const answer = parseInt(inputValue);
+                if (step === 1) {
+                    if (answer === totalCost) {
+                        setFeedback({ type: 'success', text: '¡Correcto! 3 empanadas a $200 son $600 pesos.' });
+                        setTimeout(() => { setStep(2); setInputValue(''); setFeedback(null); }, 2500);
+                    } else setFeedback({ type: 'error', text: 'Pista: Multiplica 3 x 200.' });
+                } else if (step === 2) {
+                    if (answer === change) {
+                        setFeedback({ type: 'success', text: '¡Muy bien! $1000 - $600 = $400.' });
+                        setTimeout(() => { setStep(3); setInputValue(''); setFeedback(null); }, 2500);
+                    } else setFeedback({ type: 'error', text: 'Pista: A $1000 quítale $600.' });
+                } else if (step === 3) {
+                    if (answer === split) {
+                        setFeedback({ type: 'success', text: '¡Excelente! $400 entre 2 = $200.' });
+                        onComplete();
+                    } else setFeedback({ type: 'error', text: 'Pista: ¿Cuánto es la mitad de 400?' });
+                }
+            };
+
+            return (
+                <div className="bg-white border-2 border-orange-200 rounded-2xl p-6 shadow-sm">
+                    <div className="flex flex-wrap justify-center gap-4 mb-8 bg-orange-50 p-6 rounded-xl border border-orange-100">
+                        {step >= 1 && <div className="text-center animate-fade-in"><div className="text-4xl mb-2 flex gap-2"><span>🥟</span><span>🥟</span><span>🥟</span></div><span className="bg-orange-200 text-orange-800 font-bold px-3 py-1 rounded-full text-sm">3 x $200 COP</span></div>}
+                        {step >= 2 && <div className="text-center animate-fade-in flex items-center before:content-['-'] before:text-4xl before:mx-4 before:text-slate-300"><div><div className="text-4xl mb-2 text-green-600"><i className="fa-solid fa-money-bill-wave"></i></div><span className="bg-green-100 text-green-800 font-bold px-3 py-1 rounded-full text-sm">Billete de $1000</span></div></div>}
+                        {step === 3 && <div className="text-center animate-fade-in flex items-center before:content-['÷'] before:text-4xl before:mx-4 before:text-slate-300"><div><div className="text-4xl mb-2 text-blue-500"><i className="fa-solid fa-user-group"></i></div><span className="bg-blue-100 text-blue-800 font-bold px-3 py-1 rounded-full text-sm">2 Amigos</span></div></div>}
+                    </div>
+
+                    <div className="max-w-xl mx-auto space-y-4">
+                        {step === 1 && <div className="animate-fade-in text-center"><h4 className="text-xl font-bold text-slate-800 mb-2">Paso 1: ¿Cuánto pagas?</h4><p className="text-slate-600">3 empanadas a $200. ¿Total?</p></div>}
+                        {step === 2 && <div className="animate-fade-in text-center"><h4 className="text-xl font-bold text-slate-800 mb-2">Paso 2: La devuelta</h4><p className="text-slate-600">Pagas $600 con un billete de $1000. ¿Devuelta?</p></div>}
+                        {step === 3 && <div className="animate-fade-in text-center"><h4 className="text-xl font-bold text-slate-800 mb-2">Paso 3: Repartir equitativamente</h4><p className="text-slate-600">Reparte la devuelta ($400) entre 2 amigos.</p></div>}
+
+                        {step <= 3 && feedback?.type !== 'success' && (
+                            <div className="flex gap-2 justify-center mt-4">
+                                <input type="number" value={inputValue} onChange={(e) => setInputValue(e.target.value)} placeholder="0" className="bg-slate-100 border-2 border-slate-200 rounded-xl py-3 px-4 font-bold text-lg text-center w-32 focus:border-orange-500 outline-none" />
+                                <button onClick={checkAnswer} className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-6 rounded-xl">Revisar</button>
+                            </div>
+                        )}
+                        {feedback && <div className={`mt-4 p-4 rounded-xl text-center font-medium animate-fade-in ${feedback.type === 'success' ? 'bg-green-50 text-green-800' : 'bg-amber-50 text-amber-800'}`}>{feedback.text}</div>}
+                        {step === 3 && feedback?.type === 'success' && <div className="text-center mt-6"><span className="bg-green-500 text-white font-bold px-6 py-3 rounded-xl inline-block">¡Reto Completado!</span></div>}
+                    </div>
+                </div>
+            );
+        }
+
+        function MonsterQuiz({ onComplete }) {
+            const questions = [{ q: "15 dulces entre 3 amigos, ¿cuántos tocan?", options: [3, 5, 6], ans: 5, pista: "Imagina 3 bolsitas." }];
+            const [monsterHp, setMonsterHp] = useState(100);
+            const [feedback, setFeedback] = useState(null);
+            const [isSuccess, setIsSuccess] = useState(false);
+
+            const handleAnswer = (option) => {
+                if (isSuccess) return;
+                if (option === questions[0].ans) {
+                    setFeedback({ type: 'success', text: '¡Correcto!' });
+                    setMonsterHp(0);
+                    setTimeout(() => { setIsSuccess(true); onComplete(); }, 1000);
+                } else setFeedback({ type: 'error', text: `¡Uy! Casi. Pista: ${questions[0].pista}` });
+            };
+
+            return (
+                <div className="bg-white border-2 border-purple-200 rounded-2xl p-6 shadow-sm">
+                    <div className="flex flex-col md:flex-row gap-8 items-center">
+                        <div className="flex-shrink-0 flex flex-col items-center">
+                            <div className={`w-32 h-32 rounded-full flex items-center justify-center text-6xl shadow-lg ${isSuccess ? 'bg-green-100 text-green-500' : 'bg-purple-100 text-purple-600'}`}>
+                                <i className={`fa-solid ${isSuccess ? 'fa-face-dizzy' : 'fa-ghost'}`}></i>
+                            </div>
+                            <div className="w-full bg-slate-200 rounded-full h-3 mt-4"><div className="bg-red-500 h-3 rounded-full" style={{ width: `${monsterHp}%` }}></div></div>
+                        </div>
+                        <div className="flex-1 w-full">
+                            {isSuccess ? (
+                                <div className="text-center p-4 bg-green-50 rounded-xl text-green-800"><h4 className="text-xl font-bold">¡Monstruo Derrotado!</h4></div>
+                            ) : (
+                                <div>
+                                    <h4 className="text-lg font-bold text-slate-800 mb-4">{questions[0].q}</h4>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {questions[0].options.map((opt, i) => (
+                                            <button key={i} onClick={() => handleAnswer(opt)} className="bg-slate-100 border-2 border-slate-200 text-slate-700 font-bold py-3 px-4 rounded-xl">{opt}</button>
+                                        ))}
+                                    </div>
+                                    {feedback && <div className="mt-4 p-3 rounded-xl bg-amber-50 text-amber-800">{feedback.text}</div>}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // --- FORO DE DUDAS Y LOGROS ---
+        function ForoDudas() {
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    <h2 className="text-2xl md:text-3xl font-bold text-slate-800 flex items-center gap-3">
+                        <i className="fa-solid fa-comments text-emerald-500"></i> Foro de Rescate
+                    </h2>
+                    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
+                        <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 mb-6">
+                            <textarea placeholder="Escribe tu duda aquí..." className="w-full bg-transparent border-none outline-none resize-none text-slate-700" rows="3"></textarea>
+                            <div className="flex justify-end mt-2"><button className="bg-emerald-600 text-white font-bold py-2 px-6 rounded-xl">Publicar</button></div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        function Logros({ earnedBadges, xp, grades }) {
+            const allBadges = [
+                { id: 'Comentarista 1', desc: 'Comentaste el video 1.', icon: 'fa-comment', color: 'bg-indigo-500' },
+                { id: 'Maestro del Reparto', desc: 'Simulador resuelto.', icon: 'fa-gamepad', color: 'bg-blue-500' },
+                { id: 'Vencedor del Monstruo', desc: 'Derrotaste al monstruo.', icon: 'fa-ghost', color: 'bg-purple-500' },
+                { id: 'Comentarista 2', desc: 'Comentaste el video 2.', icon: 'fa-comment', color: 'bg-indigo-500' },
+                { id: 'Agricultor Experto', desc: 'Plantaste el jardín.', icon: 'fa-seedling', color: 'bg-teal-500' },
+                { id: 'Comentarista 3', desc: 'Comentaste el video 3.', icon: 'fa-comment', color: 'bg-indigo-500' },
+                { id: 'Comprador Experto', desc: 'Compraste en la tienda.', icon: 'fa-store', color: 'bg-orange-500' },
+                { id: 'Creador Maestro', desc: 'Subiste tu actividad.', icon: 'fa-upload', color: 'bg-rose-500' },
+            ];
+
+            return (
+                <div className="space-y-6 animate-fade-in">
+                    <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3"><i className="fa-solid fa-medal text-amber-500"></i> Mis Logros</h2>
+                    <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
+                        <div className="flex flex-col md:flex-row justify-between mb-8">
+                            <p className="text-slate-600 text-lg">Insignias ganadas: <strong className="text-amber-600 bg-amber-100 px-3 py-1 rounded-lg">{earnedBadges.length} de {allBadges.length}</strong></p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {allBadges.map(badge => {
+                                const isEarned = earnedBadges.includes(badge.id);
+                                return (
+                                    <div key={badge.id} className={`relative flex flex-col items-center text-center p-6 rounded-2xl border-2 ${isEarned ? 'border-amber-400 bg-amber-50' : 'border-slate-200 bg-slate-50 opacity-70 grayscale'}`}>
+                                        <div className={`w-20 h-20 rounded-full flex items-center justify-center mb-4 text-white ${isEarned ? badge.color : 'bg-slate-300'}`}><i className={`fa-solid ${badge.icon} text-3xl`}></i></div>
+                                        <h3 className="font-bold text-slate-800">{badge.id}</h3>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Renderizar la App
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
